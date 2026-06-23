@@ -1,0 +1,22 @@
+{
+  "background_color": "#ffffff",
+  "description": "MedTracker — Personal Health Records Manager",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Medicare Tracker",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Medicare",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "categories": [
+    "fitness",
+    "health",
+    "medical"
+  ],
+  "edge_side_panel": {
+    "preferred_width": 0
+  },
+  "lang": "en",
+  "prefer_related_applications": true
+}
