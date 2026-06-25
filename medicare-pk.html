@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"/>
 <meta name="description" content="MedTracker — Personal Health Records Manager"/>
+<meta name="theme-color" content="#7c6ff7"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="MedTracker"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>MedTracker — Health Records</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -4331,7 +4337,7 @@ Provide specific, actionable medical advice for this patient. Reference their ac
 // Gemini model fallback chain — gemini-2.5-flash is the best free-tier model as of 2026.
 // gemini-2.5-flash-lite is a lighter backup with higher rate limits.
 // Both support system_instruction, multi-turn history, and long context.
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-1.5-flash-8b'];
 
 async function geminiRequest(apiKey, body) {
   let lastErr = 'Unknown error';
@@ -4517,8 +4523,40 @@ function saveInlineAPIKey() {
   const container = document.getElementById('ai-full-messages');
   if (container) container.innerHTML = '';
   const pt = S.currentPatient;
-  addAIMessage('ai-full-messages','ai', `✅ API key saved! AI is ready${pt?` for <strong>${pt.name}</strong>`:''}. Ask me anything!`);
-  showToast('API key saved — AI is ready!','success');
+  addAIMessage('ai-full-messages','ai', `✅ API key saved! Testing connection...`);
+  // Auto-test immediately after saving
+  setTimeout(() => testGeminiKey(), 500);
+}
+
+async function testGeminiKey() {
+  const apiKey = localStorage.getItem('mt_apikey')||'';
+  if (!apiKey) { showToast('No API key saved yet','error'); return; }
+  const container = document.getElementById('ai-full-messages');
+  try {
+    const res = await geminiRequest(apiKey, {
+      contents:[{parts:[{text:'Reply with exactly: OK'}]}],
+      generationConfig:{maxOutputTokens:5, temperature:0}
+    });
+    const data = await res.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if (reply) {
+      if (container) {
+        container.innerHTML = '';
+        const pt = S.currentPatient;
+        addAIMessage('ai-full-messages','ai',
+          `✅ Connection successful! AI is ready${pt?` for <strong>${pt.name}</strong>`:''}. Ask me anything or select a quick prompt above.`);
+      }
+      showToast('Gemini connection verified ✅','success');
+    }
+  } catch(err) {
+    if (container) {
+      container.innerHTML = '';
+      addAIMessage('ai-full-messages','ai',
+        `⚠️ Key saved but test failed: ${err.message}<br><br>
+        <span style="font-size:11px;color:var(--tx3)">This may be temporary server load. Try sending a message — it may work fine. If not, get a fresh key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ac2)">aistudio.google.com/app/apikey</a></span><br>
+        <button class="btn" style="font-size:11px;margin-top:8px" onclick="testGeminiKey()"><i class="ti ti-refresh"></i> Retry Test</button>`);
+    }
+  }
 }
 
 async function sendAIFull() {
@@ -4531,9 +4569,16 @@ async function sendAIFull() {
     const reply=await callAI(text);
     if(typingDiv) typingDiv.querySelector('.ai-bubble').innerHTML=reply.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
   } catch(e) {
-    const msg = e.message==='NO_KEY'
-      ? '⚠️ API key not set. Scroll up and paste your Gemini key to get started.'
-      : '❌ '+e.message;
+    let msg;
+    if (e.message==='NO_KEY') {
+      msg = '⚠️ API key not set. Scroll up and paste your Gemini key to get started.';
+    } else if (/busy|demand|503/i.test(e.message)) {
+      // Store last message so user can retry without retyping
+      window._lastAIMsg = text;
+      msg = `⏳ ${e.message}<br><button class="btn" style="font-size:11px;margin-top:8px" onclick="document.getElementById('ai-full-input').value=window._lastAIMsg||'';sendAIFull()"><i class="ti ti-refresh"></i> Retry</button>`;
+    } else {
+      msg = '❌ '+e.message;
+    }
     if(typingDiv) typingDiv.querySelector('.ai-bubble').innerHTML=msg;
   }
 }
@@ -4909,38 +4954,97 @@ function saveMed() {
 // without a backend proxy), so this uses the Gemini language model's medical knowledge
 // instead, which gives an equivalent result for generic name / usage / side effects.
 async function lookupMedInfo(evt) {
-  const name = document.getElementById('fm-name').value.trim();
-  if (!name) { showToast('Enter a medication name first','error'); return; }
-  const apiKey = localStorage.getItem('mt_apikey')||'';
-  if (!apiKey) { showToast('Set your Gemini API key in AI Advisor first','error'); return; }
+  const rawName = document.getElementById('fm-name').value.trim();
+  if (!rawName) { showToast('Enter a medication name first','error'); return; }
 
   const btn = evt?.target?.closest('button') || evt?.currentTarget;
   if (btn) { btn.disabled=true; btn.dataset.origHtml = btn.dataset.origHtml || btn.innerHTML; btn.innerHTML='<i class="ti ti-loader-2"></i> Looking up...'; }
 
+  // Extract base drug name (strip dosage like "10mg", "500mg" etc.)
+  const name = rawName.replace(/\s*\d+\s*(mg|mcg|ml|g|iu|%)/gi,'').trim();
+
   try {
-    const res = await geminiRequest(apiKey, {
-      contents:[{parts:[{text:
-        `For the medication "${name}" (may be a Pakistani/international brand name), return ONLY a JSON object, no other text:
-{"formula":"generic/chemical name","usage":"1-2 sentence plain-language description of primary use","sideEffects":"comma-separated list of common side effects"}
-Best estimate if exact brand not recognized. Keep usage under 200 characters.`
-      }]}],
-      generationConfig:{temperature:0.2, maxOutputTokens:300}
-    });
-    const data = await res.json();
-    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    text = text.replace(/```json|```/g,'').trim();
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error('AI returned unreadable response — enter details manually.');
-    const info = JSON.parse(match[0]);
-    if (info.formula) document.getElementById('fm-formula').value = info.formula;
-    if (info.usage) document.getElementById('fm-purpose').value = info.usage;
-    if (info.sideEffects) document.getElementById('fm-sideeffects').value = info.sideEffects;
-    showToast('Lookup successful — please verify before saving','success');
+    let found = false;
+
+    // ── STEP 1: OpenFDA official drug database (no API key, verified data) ──
+    // Tries both brand name and generic name searches
+    try {
+      const queries = [
+        `https://api.fda.gov/drug/label.json?search=openfda.brand_name:"${encodeURIComponent(name)}"&limit=1`,
+        `https://api.fda.gov/drug/label.json?search=openfda.generic_name:"${encodeURIComponent(name)}"&limit=1`,
+      ];
+      for (const url of queries) {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const result = data.results?.[0];
+        if (!result) continue;
+        const generic = result.openfda?.generic_name?.[0] || '';
+        const purpose = result.purpose?.[0] || result.indications_and_usage?.[0] || '';
+        const warnings = result.warnings?.[0] || result.adverse_reactions?.[0] || '';
+        if (generic || purpose) {
+          if (generic) document.getElementById('fm-formula').value = generic;
+          if (purpose) document.getElementById('fm-purpose').value = purpose.replace(/<[^>]+>/g,'').substring(0,300);
+          if (warnings) document.getElementById('fm-sideeffects').value = warnings.replace(/<[^>]+>/g,'').substring(0,200);
+          found = true;
+          showToast('✅ Found in FDA official drug database — please verify dosage with pharmacist','success');
+          break;
+        }
+      }
+    } catch(fdaErr) {
+      console.log('FDA lookup failed (CORS/network):', fdaErr.message);
+      // Continue to Gemini fallback
+    }
+
+    // ── STEP 2: Gemini fallback — for Pakistani/local brands not in FDA ──
+    // Prompt is now very specific to avoid hallucination
+    if (!found) {
+      const apiKey = localStorage.getItem('mt_apikey')||'';
+      if (!apiKey) {
+        showToast('Not found in FDA database. Set a Gemini API key in AI Advisor for Pakistani brand lookup.','error');
+        if (btn) { btn.disabled=false; btn.innerHTML = btn.dataset.origHtml || '<i class="ti ti-search"></i> Auto-Lookup'; }
+        return;
+      }
+      const res = await geminiRequest(apiKey, {
+        contents:[{parts:[{text:
+          `You are a pharmacist database. Look up the medication brand name: "${rawName}"
+This may be a Pakistani, Indian, or international brand name.
+
+CRITICAL: Only provide information you are CERTAIN about. If unsure about the generic name, say "Unknown - verify with pharmacist".
+Do NOT guess or confuse similar-sounding drug names (e.g. do not confuse Merol/Metoprolol with Metronidazole).
+
+Return ONLY this JSON, no other text:
+{"formula":"exact generic/chemical name or Unknown","usage":"primary medical use in 1-2 sentences","sideEffects":"common side effects comma separated","confidence":"high/medium/low"}`
+        }]}],
+        generationConfig:{temperature:0.1, maxOutputTokens:300}
+      });
+      const data = await res.json();
+      let text = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+      text = text.replace(/```json|```/g,'').trim();
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Could not parse response — enter details manually');
+      const info = JSON.parse(match[0]);
+      if (info.formula && info.formula !== 'Unknown') {
+        document.getElementById('fm-formula').value = info.formula;
+      }
+      if (info.usage) document.getElementById('fm-purpose').value = info.usage;
+      if (info.sideEffects) document.getElementById('fm-sideeffects').value = info.sideEffects;
+      const confidence = info.confidence || 'low';
+      if (confidence === 'low') {
+        showToast('⚠️ Low confidence result — MUST be verified with a pharmacist before use','error');
+      } else {
+        showToast(`AI lookup done (${confidence} confidence) — verify with pharmacist before saving`,'success');
+      }
+      found = true;
+    }
   } catch(err) {
     console.error('Med lookup error:', err);
     showToast('Lookup failed: '+err.message,'error');
   } finally {
     if (btn) { btn.disabled=false; btn.innerHTML = btn.dataset.origHtml || '<i class="ti ti-search"></i> Auto-Lookup'; }
+    // Always show safety warning in form after any lookup
+    const warn = document.getElementById('fm-lookup-warning');
+    if (warn) warn.style.display='block';
   }
 }
 
@@ -5668,3 +5772,12 @@ document.addEventListener('DOMContentLoaded',init);
 
 </body>
 </html>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/medicare/sw.js')
+      .then(() => console.log('MedTracker: offline ready'))
+      .catch(e => console.log('SW failed:', e));
+  });
+}
+</script>
