@@ -1,15 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en" data-theme="dark-purple">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"/>
 <meta name="description" content="MedTracker — Personal Health Records Manager"/>
-<meta name="theme-color" content="#7c6ff7"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="MedTracker"/>
-<link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icon-192.png"/>
 <title>MedTracker — Health Records</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -662,11 +657,14 @@ const _fbApp = firebase.initializeApp({
 window._fbAuth = firebase.auth();
 window._fbDb  = firebase.firestore();
 
-// Auto-login if Firebase session still active
+// Auto-login only if email is verified
 _fbAuth.onAuthStateChanged(user => {
-  if (user && document.getElementById('app').style.display==='none') {
+  if (user && user.emailVerified && document.getElementById('app').style.display==='none') {
     S.currentUser = {name: user.displayName||user.email, email: user.email, uid: user.uid, photo: user.photoURL};
     showApp();
+  } else if (user && !user.emailVerified) {
+    // Signed in but not verified — sign out silently
+    _fbAuth.signOut();
   }
 });
 }); // end DOMContentLoaded
@@ -1902,16 +1900,22 @@ _fbAuth.onAuthStateChanged(user => {
 // GLOBAL STATE
 // ============================================================
 const THEMES = [
-  {id:'dark-purple',  name:'Dark Purple',   bg:'#0d0d16', bg2:'#12121e', ac:'#7c6ff7',  dot:'#7c6ff7'},
-  {id:'ocean-blue',   name:'Ocean Blue',    bg:'#040c18', bg2:'#081828', ac:'#0ea5e9',  dot:'#0ea5e9'},
-  {id:'forest-green', name:'Forest Green',  bg:'#050e08', bg2:'#091808', ac:'#16a34a',  dot:'#16a34a'},
-  {id:'midnight',     name:'Midnight',      bg:'#000005', bg2:'#07070f', ac:'#6366f1',  dot:'#6366f1'},
-  {id:'charcoal',     name:'Charcoal',      bg:'#0a0a0a', bg2:'#141414', ac:'#60a5fa',  dot:'#60a5fa'},
-  {id:'rose-dark',    name:'Rose Dark',     bg:'#120610', bg2:'#1c0c1a', ac:'#db2777',  dot:'#db2777'},
-  {id:'medical-white',name:'Medical White', bg:'#f4f7fb', bg2:'#ffffff', ac:'#1d4ed8',  dot:'#1d4ed8'},
-  {id:'arctic',       name:'Arctic Blue',   bg:'#e8f4fd', bg2:'#ffffff', ac:'#0369a1',  dot:'#0369a1'},
-  {id:'warm-cream',   name:'Warm Cream',    bg:'#fdf8f0', bg2:'#ffffff', ac:'#92400e',  dot:'#92400e'},
-  {id:'slate-light',  name:'Slate Light',   bg:'#f1f5f9', bg2:'#ffffff', ac:'#1e40af',  dot:'#1e40af'},
+  // ── Dark Gradient Themes ──
+  {id:'dark-purple',   name:'Deep Purple',    bg:'#0d0b1e', bg2:'#13102a', ac:'#8b5cf6', dot:'#8b5cf6'},
+  {id:'ocean-blue',    name:'Ocean Blue',     bg:'#020b18', bg2:'#061628', ac:'#38bdf8', dot:'#38bdf8'},
+  {id:'forest-green',  name:'Forest Green',   bg:'#020e06', bg2:'#041a09', ac:'#22c55e', dot:'#22c55e'},
+  {id:'midnight',      name:'Midnight Black', bg:'#000000', bg2:'#0a0a0f', ac:'#6366f1', dot:'#6366f1'},
+  {id:'rose-dark',     name:'Rose Dark',      bg:'#130612', bg2:'#1e0a1c', ac:'#f472b6', dot:'#f472b6'},
+  {id:'amber-dark',    name:'Amber Night',    bg:'#0f0800', bg2:'#1a1000', ac:'#f59e0b', dot:'#f59e0b'},
+  {id:'teal-dark',     name:'Teal Dark',      bg:'#020f0f', bg2:'#041a1a', ac:'#2dd4bf', dot:'#2dd4bf'},
+  {id:'crimson',       name:'Crimson',        bg:'#0f0204', bg2:'#1a0306', ac:'#ef4444', dot:'#ef4444'},
+  // ── Light/Soft Themes ──
+  {id:'medical-white', name:'Medical White',  bg:'#f4f7fb', bg2:'#ffffff', ac:'#2563eb', dot:'#2563eb'},
+  {id:'arctic',        name:'Arctic Blue',    bg:'#e0f2fe', bg2:'#f0f9ff', ac:'#0369a1', dot:'#0369a1'},
+  {id:'warm-cream',    name:'Warm Cream',     bg:'#fef9f0', bg2:'#ffffff', ac:'#b45309', dot:'#b45309'},
+  {id:'mint-fresh',    name:'Mint Fresh',     bg:'#f0fdf4', bg2:'#ffffff', ac:'#15803d', dot:'#15803d'},
+  {id:'lavender',      name:'Lavender',       bg:'#f5f3ff', bg2:'#ffffff', ac:'#7c3aed', dot:'#7c3aed'},
+  {id:'rose-light',    name:'Rose Light',     bg:'#fff1f2', bg2:'#ffffff', ac:'#be123c', dot:'#be123c'},
 ];
 
 const S = {
@@ -2085,11 +2089,10 @@ function scheduleFirestoreSync() {
 async function pushToFirestore() {
   if (!window._fbDb || !S.currentUser) return;
   try {
-    // Store each patient as its own Firestore document
-    // This keeps documents under the 1MB limit
+    const uid = S.currentUser.uid;
     const batch = _fbDb.batch();
     S.patients.forEach(pt => {
-      const ref = _fbDb.collection('patients').doc(pt.id);
+      const ref = _fbDb.collection('users').doc(uid).collection('patients').doc(pt.id);
       batch.set(ref, { ...pt, _updatedAt: new Date().toISOString() });
     });
     await batch.commit();
@@ -2101,7 +2104,8 @@ async function pushToFirestore() {
 async function loadFromFirestore() {
   if (!window._fbDb || !S.currentUser) return false;
   try {
-    const snap = await _fbDb.collection('patients').get();
+    const uid = S.currentUser.uid;
+    const snap = await _fbDb.collection('users').doc(uid).collection('patients').get();
     if (snap.empty) return false;
     const pts = [];
     snap.forEach(doc => { const d = doc.data(); delete d._updatedAt; pts.push(d); });
@@ -2114,7 +2118,6 @@ async function loadFromFirestore() {
   }
 }
 
-// One-time migration: push existing localStorage data to Firestore
 async function migrateLocalToFirestore() {
   const stored = localStorage.getItem('mt_patients');
   if (!stored) { showToast('No local data to migrate','error'); return; }
@@ -2122,13 +2125,14 @@ async function migrateLocalToFirestore() {
   if (!pts.length) { showToast('No patients found in local storage','error'); return; }
   showToast('Migrating '+pts.length+' patient(s) to cloud...','success');
   try {
+    const uid = S.currentUser.uid;
     const batch = _fbDb.batch();
     pts.forEach(pt => {
-      const ref = _fbDb.collection('patients').doc(pt.id);
+      const ref = _fbDb.collection('users').doc(uid).collection('patients').doc(pt.id);
       batch.set(ref, { ...pt, _updatedAt: new Date().toISOString() });
     });
     await batch.commit();
-    showToast('✅ Migrated '+pts.length+' patient(s) to Firestore — all devices can now see this data','success');
+    showToast('✅ Migrated '+pts.length+' patient(s) to your private cloud storage','success');
   } catch(err) {
     showToast('Migration failed: '+err.message,'error');
   }
@@ -2162,7 +2166,7 @@ function buildThemeGrid() {
     sw.className = 'theme-swatch' + (t.id===saved?' on':'');
     sw.dataset.id = t.id;
     sw.innerHTML = `<div class="ts-top" style="background:${t.bg}"></div><div class="ts-bottom" style="background:${t.bg2}"><div class="ts-dot" style="background:${t.dot}"></div><div class="ts-dot" style="background:${t.dot}88"></div></div><div class="theme-swatch-name">${t.name}</div>`;
-    sw.onclick = () => applyTheme(t.id);
+    sw.onclick = () => { applyTheme(t.id); setTimeout(()=>closeThemePanel(), 300); };
     grid.appendChild(sw);
   });
 }
@@ -2186,8 +2190,7 @@ function getCloudConfig() {
 }
 
 function openCloudSyncModal() {
-  if (!S.currentUser) { showToast('Please log in first — cloud sync requires an authenticated session','error'); return; }
-  const cfg = getCloudConfig();
+  if (!S.currentUser) { showToast('Please log in first','error'); return; }
   let modal = document.getElementById('modal-cloud-sync');
   if (!modal) {
     modal = document.createElement('div');
@@ -2198,70 +2201,53 @@ function openCloudSyncModal() {
   }
   modal.style.display = 'flex';
   modal.innerHTML = `
-    <div class="modal" style="max-width:500px;width:100%">
+    <div class="modal" style="max-width:460px;width:100%">
       <div class="modal-header">
-        <h3>☁️ Backup &amp; Cloud Sync</h3>
+        <h3>🔥 Backup &amp; Sync</h3>
         <button class="modal-close" onclick="document.getElementById('modal-cloud-sync').style.display='none'"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-body">
-        <p style="font-size:10px;color:var(--tx3);margin-bottom:14px">
-          <i class="ti ti-lock"></i> Logged in as <b>${S.currentUser.email||S.currentUser.uid}</b>
-        </p>
-
-        <!-- OPTION 1: Firebase Firestore (primary sync) -->
         <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;border:2px solid var(--grn)">
-          <div style="font-size:13px;font-weight:700;color:var(--grn);margin-bottom:6px">🔥 Firebase Cloud Sync <span style="font-size:10px;font-weight:400;color:var(--tx3)">(automatic — all users see same data)</span></div>
+          <div style="font-size:13px;font-weight:700;color:var(--grn);margin-bottom:4px">🔥 Firebase — Active</div>
           <div style="font-size:11px;color:var(--tx2);line-height:1.8;margin-bottom:10px">
-            Every change syncs to Firebase within 2 seconds. Any device that logs in sees the same patients, reports and images — automatically.
+            All data syncs automatically. Every user who logs in sees the same patients, lab results, reports and images — no manual action needed.
           </div>
-          <div id="firestore-status" style="font-size:11px;color:var(--tx3);margin-bottom:10px">Checking status...</div>
+          <div style="font-size:11px;margin-bottom:8px"><b>Logged in as:</b> <span style="color:var(--ac2)">${S.currentUser.email||S.currentUser.uid}</span></div>
+          <div id="firestore-status" style="font-size:11px;color:var(--tx3);margin-bottom:10px"></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="btn btn-primary" style="font-size:12px" onclick="checkFirestoreStatus()"><i class="ti ti-cloud-check"></i> Check Sync Status</button>
-            <button class="btn" style="font-size:12px" onclick="migrateLocalToFirestore()"><i class="ti ti-database-import"></i> Migrate Local Data to Cloud</button>
+            <button class="btn btn-primary" style="font-size:11px" onclick="checkFirestoreStatus()"><i class="ti ti-refresh"></i> Check Status</button>
+            <button class="btn" style="font-size:11px" onclick="migrateLocalToFirestore()"><i class="ti ti-database-import"></i> Migrate Local Data</button>
           </div>
         </div>
 
-        <!-- OPTION 2: Manual Backup -->
-        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--bd)">
-          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:6px">📁 Manual Backup</div>
-          <div style="font-size:11px;color:var(--tx2);line-height:1.8;margin-bottom:10px">
-            Download a backup file and save it to Google Drive, WhatsApp, or USB. Import on another device to restore.
-          </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid var(--bd)">
+          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">💾 Emergency Backup</div>
+          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">Download all data as a file. Use if you need to move data or as an extra safety copy.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn" style="font-size:12px" onclick="downloadLocalBackup()"><i class="ti ti-download"></i> Download Backup</button>
-            <button class="btn" style="font-size:12px" onclick="document.getElementById('cs-import-file').click()"><i class="ti ti-upload"></i> Import Backup</button>
+            <button class="btn" style="font-size:11px" onclick="downloadLocalBackup()"><i class="ti ti-download"></i> Download Backup</button>
+            <button class="btn" style="font-size:11px" onclick="document.getElementById('cs-import-file').click()"><i class="ti ti-upload"></i> Import Backup</button>
             <input type="file" id="cs-import-file" accept=".json" style="display:none" onchange="importLocalBackup(event)"/>
           </div>
         </div>
-
-        <!-- OPTION 3: GitHub auto-sync (advanced) -->
-        <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid var(--bd)">
-          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:6px">⚙️ GitHub Auto-Sync <span style="font-size:10px;font-weight:400;color:var(--tx3)">(secondary backup)</span></div>
-          <div class="form-row"><label>GitHub Username</label><input id="cs-owner" value="${cfg.owner}" placeholder="e.g. gigmasterent"/></div>
-          <div class="form-row"><label>Repository Name</label><input id="cs-repo" value="${cfg.repo}" placeholder="e.g. medicare"/></div>
-          <div class="form-row"><label>Branch</label><input id="cs-branch" value="${cfg.branch}" placeholder="main"/></div>
-          <div class="form-row"><label>Personal Access Token</label><input id="cs-token" type="password" value="${cfg.token}" placeholder="ghp_xxxxxxxxxxxx"/></div>
-          <div id="cs-status" style="font-size:11px;margin-top:8px"></div>
-        </div>
       </div>
-      <div class="modal-footer" style="flex-wrap:wrap;gap:6px">
-        <button class="btn" onclick="document.getElementById('modal-cloud-sync').style.display='none'">Close</button>
-        <button class="btn" onclick="cloudSyncRestore()"><i class="ti ti-cloud-download"></i> Restore from GitHub</button>
-        <button class="btn btn-success" onclick="cloudSyncPush()"><i class="ti ti-cloud-upload"></i> Save &amp; Test GitHub Sync</button>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="document.getElementById('modal-cloud-sync').style.display='none'">Close</button>
       </div>
     </div>`;
+  checkFirestoreStatus();
 }
 
 async function checkFirestoreStatus() {
   const el = document.getElementById('firestore-status');
-  if (!window._fbDb) { if(el) el.textContent='Firebase not initialized yet — please wait a moment and try again.'; return; }
-  if (!S.currentUser) { if(el) el.textContent='Not logged in — please log in first.'; return; }
+  if (!window._fbDb) { if(el) el.textContent='Firebase not initialized yet.'; return; }
+  if (!S.currentUser) { if(el) el.textContent='Not logged in.'; return; }
   if(el) el.textContent = 'Checking...';
   try {
-    const snap = await _fbDb.collection('patients').get();
+    const uid = S.currentUser.uid;
+    const snap = await _fbDb.collection('users').doc(uid).collection('patients').get();
     const msg = snap.empty
-      ? '⚠️ No data in cloud yet — click "Migrate Local Data to Cloud" to upload your existing data.'
-      : `✅ Cloud sync active — ${snap.size} patient(s) stored in Firebase. All logged-in users see this data.`;
+      ? '⚠️ No data in cloud yet — click "Migrate Local Data" to upload your existing patients.'
+      : `✅ Cloud sync active — ${snap.size} patient(s) stored privately in Firebase for your account.`;
     if(el) { el.textContent = msg; el.style.color = snap.empty ? 'var(--amb)' : 'var(--grn)'; }
   } catch(err) {
     if(el) { el.textContent = 'Error: '+err.message; el.style.color='var(--red)'; }
@@ -2736,17 +2722,23 @@ async function showApp() {
   document.getElementById('app').style.display='flex';
   document.getElementById('mobile-nav').classList.add('logged-in');
   buildThemeGrid();
-  // Try Firestore first — falls back to localStorage if offline/error
+
+  // Load shared Gemini API key from Firestore (set once by admin, works for all users)
+  try {
+    const cfgDoc = await _fbDb.collection('config').doc('gemini').get();
+    if (cfgDoc.exists && cfgDoc.data().apiKey) {
+      localStorage.setItem('mt_apikey', cfgDoc.data().apiKey);
+    }
+  } catch(e) { /* offline or not set yet — use localStorage fallback */ }
+
+  // Load patient data from Firestore
   const fromCloud = await loadFromFirestore();
   if (!fromCloud) {
     const stored = localStorage.getItem('mt_patients');
-    if (stored) {
-      try { S.patients = JSON.parse(stored); } catch(e) {}
-    }
+    if (stored) { try { S.patients = JSON.parse(stored); } catch(e) {} }
     if (!S.patients.length) loadDemoPatients();
   }
   renderHome();
-  // If first time with Firestore: offer to migrate existing local data
   if (fromCloud && S.patients.length > 0) {
     showToast('✅ Loaded '+S.patients.length+' patient(s) from cloud','success');
   }
@@ -4488,25 +4480,41 @@ function renderAIPage() {
 
   const container = document.getElementById('ai-full-messages');
   if (!container.children.length) {
-    const hasKey = !!localStorage.getItem('mt_apikey');
-    if (!hasKey) {
-      const div = document.createElement('div');
-      div.className = 'ai-msg ai';
-      div.innerHTML = `<div style="width:24px;height:24px;background:rgba(124,111,247,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">🩺</div>
-      <div class="ai-bubble" style="flex:1">
-        <strong>🔑 One-time AI Setup Required</strong><br><br>
-        <div style="font-size:11px;color:var(--tx2);line-height:2">
-          1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ac2)">aistudio.google.com/app/apikey</a><br>
-          2. Sign in with Google → click <b>Create API Key</b><br>
-          3. Paste it below — <b>free, 1500 requests/day, no card needed</b>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-          <input id="inline-apikey" type="text" placeholder="Paste API key here (AIzaSy...)"
-            style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:7px 10px;color:var(--tx);font-size:12px;outline:none"/>
-          <button class="btn btn-primary" style="font-size:12px" onclick="saveInlineAPIKey()"><i class="ti ti-check"></i> Save & Start</button>
-        </div>
-      </div>`;
-      container.appendChild(div);
+    // Try loading from Firestore first (admin may have set it already)
+    if (!localStorage.getItem('mt_apikey') && window._fbDb) {
+      addAIMessage('ai-full-messages','ai','<div class="ai-typing"><span></span><span></span><span></span></div>');
+      _fbDb.collection('config').doc('gemini').get().then(doc => {
+        container.innerHTML = '';
+        if (doc.exists && doc.data().apiKey) {
+          localStorage.setItem('mt_apikey', doc.data().apiKey);
+          const pt = S.currentPatient;
+          addAIMessage('ai-full-messages','ai',
+            pt ? `✅ AI ready for <strong>${pt.name}</strong>.`
+               : `✅ AI ready. Select a patient for personalized advice.`);
+        } else {
+          // Key not set yet — only show setup if this looks like the admin
+          const div = document.createElement('div');
+          div.className = 'ai-msg ai';
+          div.innerHTML = `<div style="width:24px;height:24px;background:rgba(124,111,247,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">🩺</div>
+          <div class="ai-bubble" style="flex:1">
+            <strong>🔑 Admin Setup Required (once only)</strong><br>
+            <div style="font-size:11px;color:var(--tx2);line-height:2;margin-top:6px">
+              1. Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--ac2)">aistudio.google.com/app/apikey</a><br>
+              2. Sign in → click <b>Create API Key</b> → copy it<br>
+              3. Paste below — all other users get AI automatically after this
+            </div>
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+              <input id="inline-apikey" type="text" placeholder="Paste API key (AIzaSy...)"
+                style="flex:1;min-width:180px;background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r);padding:7px 10px;color:var(--tx);font-size:12px;outline:none"/>
+              <button class="btn btn-primary" style="font-size:12px" onclick="saveInlineAPIKey()"><i class="ti ti-check"></i> Save for All Users</button>
+            </div>
+          </div>`;
+          container.appendChild(div);
+        }
+      }).catch(() => {
+        container.innerHTML = '';
+        addAIMessage('ai-full-messages','ai','⚠️ Could not connect to cloud. Check your internet connection.');
+      });
     } else {
       const pt = S.currentPatient;
       addAIMessage('ai-full-messages','ai',
@@ -4516,15 +4524,23 @@ function renderAIPage() {
   }
 }
 
-function saveInlineAPIKey() {
+async function saveInlineAPIKey() {
   const k = (document.getElementById('inline-apikey')?.value||'').trim();
   if (!k || k.length < 20) { showToast('Please paste a valid API key','error'); return; }
+  // Save locally first
   localStorage.setItem('mt_apikey', k);
+  // Save to Firestore — all other devices load this automatically on next login
+  try {
+    await _fbDb.collection('config').doc('gemini').set({
+      apiKey: k, updatedAt: new Date().toISOString()
+    });
+    showToast('✅ API key saved for ALL devices automatically','success');
+  } catch(e) {
+    showToast('Key saved on this device only (offline — reconnect to sync)','success');
+  }
   const container = document.getElementById('ai-full-messages');
   if (container) container.innerHTML = '';
-  const pt = S.currentPatient;
-  addAIMessage('ai-full-messages','ai', `✅ API key saved! Testing connection...`);
-  // Auto-test immediately after saving
+  addAIMessage('ai-full-messages','ai', `✅ API key saved! All devices will use this key automatically. Testing connection...`);
   setTimeout(() => testGeminiKey(), 500);
 }
 
@@ -5772,12 +5788,3 @@ document.addEventListener('DOMContentLoaded',init);
 
 </body>
 </html>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/medicare/sw.js')
-      .then(() => console.log('MedTracker: offline ready'))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
