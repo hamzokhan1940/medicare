@@ -13,7 +13,7 @@
 
 ## Option 1 — GitHub Pages (FREE, already set up)
 
-Your app is already live at: **https://hamzokhan1940.github.io/medicare/**
+Your app is already live at: **https://gigmasterent.github.io/medicare/**
 
 **To update after changes:**
 1. Go to github.com → your `medicare` repository
