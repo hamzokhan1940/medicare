@@ -87,6 +87,46 @@
   --ac:#1e40af;--ac2:#1e40af;--ac3:#1e3a8a;--ac4:#dbeafe;
   --grn:#15803d;--red:#b91c1c;--amb:#b45309;--blu:#1d4ed8;--cyn:#0e7490;--pnk:#be185d;
 }
+/* New gradient themes */
+[data-theme="amber-dark"]{
+  --bg:#0f0800;--bg2:#1a1000;--bg3:#261800;--bg4:#322200;
+  --bd:#4a3400;--bd2:#6a4e00;--tx:#fff8e8;--tx2:#c8a050;--tx3:#785800;
+  --ac:#f59e0b;--ac2:#fbbf24;--ac3:#92400e;--ac4:#451a03;
+  --grn:#22c55e;--red:#ef4444;--amb:#f59e0b;--blu:#60a5fa;--cyn:#22d3ee;--pnk:#f472b6;
+}
+[data-theme="teal-dark"]{
+  --bg:#020f0f;--bg2:#041a1a;--bg3:#082828;--bg4:#0c3838;
+  --bd:#145050;--bd2:#1e6868;--tx:#e0fff8;--tx2:#50b8a8;--tx3:#286858;
+  --ac:#2dd4bf;--ac2:#5eead4;--ac3:#0f766e;--ac4:#042f2e;
+  --grn:#22c55e;--red:#ef4444;--amb:#f59e0b;--blu:#60a5fa;--cyn:#2dd4bf;--pnk:#f472b6;
+}
+[data-theme="crimson"]{
+  --bg:#0f0204;--bg2:#1a0306;--bg3:#26040a;--bg4:#32060e;
+  --bd:#4a0810;--bd2:#6a0e18;--tx:#fff0f0;--tx2:#c85060;--tx3:#782030;
+  --ac:#ef4444;--ac2:#f87171;--ac3:#991b1b;--ac4:#450a0a;
+  --grn:#22c55e;--red:#ef4444;--amb:#f59e0b;--blu:#60a5fa;--cyn:#22d3ee;--pnk:#f472b6;
+}
+[data-theme="mint-fresh"]{
+  --bg:#f0fdf4;--bg2:#ffffff;--bg3:#dcfce7;--bg4:#bbf7d0;
+  --bd:#86efac;--bd2:#4ade80;
+  --tx:#052e16;--tx2:#14532d;--tx3:#166534;
+  --ac:#15803d;--ac2:#15803d;--ac3:#14532d;--ac4:#dcfce7;
+  --grn:#15803d;--red:#b91c1c;--amb:#b45309;--blu:#1d4ed8;--cyn:#0e7490;--pnk:#be185d;
+}
+[data-theme="lavender"]{
+  --bg:#f5f3ff;--bg2:#ffffff;--bg3:#ede9fe;--bg4:#ddd6fe;
+  --bd:#c4b5fd;--bd2:#a78bfa;
+  --tx:#2e1065;--tx2:#4c1d95;--tx3:#6d28d9;
+  --ac:#7c3aed;--ac2:#7c3aed;--ac3:#6d28d9;--ac4:#ede9fe;
+  --grn:#15803d;--red:#b91c1c;--amb:#b45309;--blu:#1d4ed8;--cyn:#0e7490;--pnk:#be185d;
+}
+[data-theme="rose-light"]{
+  --bg:#fff1f2;--bg2:#ffffff;--bg3:#ffe4e6;--bg4:#fecdd3;
+  --bd:#fda4af;--bd2:#fb7185;
+  --tx:#4c0519;--tx2:#881337;--tx3:#be123c;
+  --ac:#be123c;--ac2:#be123c;--ac3:#9f1239;--ac4:#ffe4e6;
+  --grn:#15803d;--red:#b91c1c;--amb:#b45309;--blu:#1d4ed8;--cyn:#0e7490;--pnk:#be185d;
+}
 
 
 /* ============================================================
@@ -644,7 +684,8 @@ input,select,textarea{font-family:var(--font)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-window.addEventListener('DOMContentLoaded', () => {
+// Wait for ALL scripts including deferred Firebase SDKs to finish loading
+window.addEventListener('load', () => {
 // Initialize Firebase — project: medicare-tracker-pk
 const _fbApp = firebase.initializeApp({
   apiKey: "AIzaSyCIwLMTjDg38vAREIjcXbyeqFNtP7CFC0Y",
@@ -663,11 +704,10 @@ _fbAuth.onAuthStateChanged(user => {
     S.currentUser = {name: user.displayName||user.email, email: user.email, uid: user.uid, photo: user.photoURL};
     showApp();
   } else if (user && !user.emailVerified) {
-    // Signed in but not verified — sign out silently
     _fbAuth.signOut();
   }
 });
-}); // end DOMContentLoaded
+}); // end load
 // Note: Get a FREE Gemini API key at https://aistudio.google.com/app/apikey
 // Paste it in the AI Advisor page when prompted
 </script>
@@ -2008,66 +2048,9 @@ function init() {
 }
 
 function loadDemoPatients() {
-  S.patients = [
-    {
-      id:'p1',name:'John Doe',age:60,gender:'Male',blood:'O+',phone:'+92 300 1234567',emergency:'+92 321 7654321',
-      doctor:'Dr. Demo',checkup:'2026-05-22',diseases:['Hypertension','Sample Condition'],
-      issues:'Demo patient — add your own records.',allergies:'None',address:'Karachi',notes:'',
-      initials:'JD',color:'#7c6ff7',
-      vitals:[{date:'2026-05-29',time:'Morning',sys:120,dia:80,hr:72,spo2:99,wt:72,temp:98.6,notes:''}],
-      labs:[
-        {name:'Hemoglobin',cat:'Hematology',ref:'13–17',mn:13,mx:17,unit:'g/dL',entries:[{date:'2026-05-15',lab:'AKUH',val:13.8},{date:'2026-04-29',lab:'AKUH',val:13.5}]},
-        {name:'Glucose Fasting',cat:'Glucose',ref:'65–110',mn:65,mx:110,unit:'mg/dL',entries:[{date:'2026-05-24',lab:'Chughtai',val:95}]},
-      ],
-      meds:[{name:'Lisinopril',dose:'10mg',freq:'Once daily',purpose:'BP control',times:['Morning'],start:'2026-01-01',end:'',notes:'',active:true}],
-      radiology:[],
-      appts:[{doctor:'Dr. Fatima Khan',hospital:'Demo Clinic',specialty:'General',date:'2026-06-15',time:'10:00',status:'Scheduled',phone:'',reminder:true,notes:'Routine checkup',files:[]}]
-    },
-    {
-      id:'p2',name:'Hamzo Khan',age:86,gender:'Male',blood:'O+',phone:'+92 300 9876543',emergency:'+92 333 1122334',
-      doctor:'Dr. Essa / AKUH',checkup:'2026-05-18',diseases:['Anemia','CKD Stage 2','Elevated PTH'],
-      issues:'Chronic conditions: Anemia (Hb 10.2), CKD Stage 2, elevated PTH (196.7). Regular monitoring required.',
-      allergies:'Penicillin',address:'Block 5, Clifton, Karachi',notes:'Elderly patient — handle with care.',
-      initials:'HK',color:'#6366f1',
-      vitals:[
-        {date:'2026-05-30',time:'Morning',sys:120,dia:80,hr:70,spo2:99,wt:72,temp:99,notes:''},
-        {date:'2026-05-26',time:'Morning',sys:120,dia:80,hr:70,spo2:99,wt:72,temp:99,notes:''},
-        {date:'2026-03-11',time:'Morning',sys:110,dia:75,hr:75,spo2:95,wt:70,temp:105,notes:'Fever episode'},
-        {date:'2025-12-18',time:'Morning',sys:80,dia:65,hr:70,spo2:85,wt:60,temp:106,notes:'Critically low SpO2 — hospitalized'},
-      ],
-      labs:[
-        {name:'Hemoglobin',cat:'Hematology',ref:'13.5–18',mn:13.5,mx:18,unit:'g/dL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:10.2},{date:'2026-04-22',lab:'The Lab',val:9.4},{date:'2026-02-06',lab:'AKU Lab',val:9.4},{date:'2026-01-27',lab:'OMI Lab',val:9.1}]},
-        {name:'Eosinophils',cat:'Hematology',ref:'0.3–7.4',mn:0.3,mx:7.4,unit:'%',entries:[{date:'2026-05-18',lab:'Dow Lab',val:1},{date:'2026-04-22',lab:'The Lab',val:5},{date:'2026-02-06',lab:'AKU Lab',val:16.2},{date:'2026-01-27',lab:'OMI Lab',val:1.1}]},
-        {name:'Platelets',cat:'Hematology',ref:'150–400',mn:150,mx:400,unit:'K/uL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:178},{date:'2026-04-22',lab:'The Lab',val:167},{date:'2026-02-06',lab:'AKU Lab',val:280}]},
-        {name:'WBC Count',cat:'Hematology',ref:'4.8–11.3',mn:4.8,mx:11.3,unit:'K/uL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:7.8},{date:'2026-02-06',lab:'AKU Lab',val:7.8}]},
-        {name:'Glucose Fasting',cat:'Glucose',ref:'65–110',mn:65,mx:110,unit:'mg/dL',entries:[{date:'2026-04-22',lab:'The Lab',val:92},{date:'2026-02-06',lab:'AKU Lab',val:106}]},
-        {name:'HbA1C',cat:'Glucose',ref:'0–5.7',mn:0,mx:5.7,unit:'%',entries:[{date:'2026-05-18',lab:'Dow Lab',val:5.34}]},
-        {name:'A/G Ratio',cat:'Biochemistry',ref:'1.5–2.5',mn:1.5,mx:2.5,unit:'',entries:[{date:'2026-05-18',lab:'Dow Lab',val:2},{date:'2026-04-26',lab:'Dow Lab',val:4}]},
-        {name:'Albumin',cat:'Biochemistry',ref:'3.8–4.4',mn:3.8,mx:4.4,unit:'g/dL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:2},{date:'2026-04-26',lab:'Dow Lab',val:4}]},
-        {name:'CRP',cat:'Immunology',ref:'0–6',mn:0,mx:6,unit:'mg/L',entries:[{date:'2026-05-18',lab:'Dow Lab',val:26.8},{date:'2026-04-22',lab:'The Lab',val:24},{date:'2026-02-09',lab:'NMC Lab',val:27.9}]},
-        {name:'Ferritin',cat:'Biochemistry',ref:'20–250',mn:20,mx:250,unit:'ng/mL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:584.7}]},
-        {name:'PTH',cat:'Endocrinology',ref:'15–57',mn:15,mx:57,unit:'pg/mL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:196.7},{date:'2026-04-22',lab:'The Lab',val:196.7},{date:'2026-02-09',lab:'NMC Lab',val:108}]},
-        {name:'Vitamin D',cat:'Endocrinology',ref:'30–150',mn:30,mx:150,unit:'ng/mL',entries:[{date:'2026-04-26',lab:'Dow Lab',val:24.6}]},
-        {name:'TSH',cat:'Endocrinology',ref:'0.5–8.9',mn:0.5,mx:8.9,unit:'uIU/mL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:2.28}]},
-        {name:'Calcium',cat:'Biochemistry',ref:'8.6–10.2',mn:8.6,mx:10.2,unit:'mg/dL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:8.5},{date:'2026-04-26',lab:'Dow Lab',val:9.2}]},
-        {name:'Serum Iron',cat:'Biochemistry',ref:'50–160',mn:50,mx:160,unit:'ug/dL',entries:[{date:'2026-05-18',lab:'Dow Lab',val:43},{date:'2026-04-26',lab:'Dow Lab',val:20}]},
-        {name:'Creatinine',cat:'Biochemistry',ref:'0.9–1.3',mn:0.9,mx:1.3,unit:'mg/dL',entries:[{date:'2026-04-26',lab:'Dow Lab',val:1.0}]},
-      ],
-      meds:[
-        {name:'Metformin',dose:'500mg',freq:'Twice daily',purpose:'Blood sugar control',times:['Morning','Evening'],start:'2025-06-01',end:'',notes:'',active:true},
-        {name:'Calcitriol',dose:'0.25mcg',freq:'Once daily',purpose:'Vitamin D / PTH',times:['Morning'],start:'2025-09-01',end:'',notes:'',active:true},
-        {name:'Iron Supplement',dose:'200mg',freq:'Once daily',purpose:'Anaemia treatment',times:['Afternoon'],start:'2026-01-15',end:'',notes:'Take with juice',active:true},
-      ],
-      radiology:[
-        {type:'X-Ray',body:'Chest',date:'2026-03-10',status:'Normal',doctor:'Dr. Rashid',hospital:'AKUH',findings:'No significant pulmonary infiltrates.',impression:'Normal chest X-ray.',files:[],id:'r1'},
-      ],
-      appts:[
-        {doctor:'Dr. Farooq Ahmed',hospital:'AKUH, Karachi',specialty:'Nephrology',date:'2026-05-25',time:'11:00',status:'Completed',phone:'021-111-911-911',reminder:true,notes:'PTH recheck',files:[],prescription:'Continue calcitriol. Recheck PTH in 6 weeks. Reduce salt intake. Increase water intake.'},
-        {doctor:'Dr. Shabnam Afridi',hospital:'NICH, Karachi',specialty:'Haematology',date:'2026-06-15',time:'09:30',status:'Scheduled',phone:'',reminder:true,notes:'Anemia followup — check Hb trend',files:[],prescription:''},
-      ]
-    }
-  ];
-  savePatientsToStorage();
+  // No demo data — each user starts with a clean empty account.
+  // All patient data is stored privately in Firebase per user account.
+  S.patients = [];
 }
 
 function savePatientsToStorage() {
@@ -2151,6 +2134,8 @@ function scheduleAutoCloudSync() {
 // THEME
 // ============================================================
 function applyTheme(id) {
+  // Validate the id exists in THEMES
+  if (!THEMES.find(t=>t.id===id)) id = 'dark-purple';
   document.documentElement.setAttribute('data-theme', id);
   localStorage.setItem('mt_theme', id);
   document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('on', s.dataset.id===id));
@@ -2220,8 +2205,16 @@ function openCloudSyncModal() {
           </div>
         </div>
 
-        <div style="background:var(--bg3);border-radius:10px;padding:14px;border:1px solid var(--bd)">
-          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">💾 Emergency Backup</div>
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid var(--bd)">
+          <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:4px">🖼️ Image/Report Storage <span style="font-size:10px;font-weight:400;color:var(--tx3)">(Cloudinary — free)</span></div>
+          <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">Set once — all users can upload images/reports to cloud. Get free account at <a href="https://cloudinary.com" target="_blank" style="color:var(--ac2)">cloudinary.com</a> → Settings → Upload → Add unsigned preset.</div>
+          <div class="form-row"><label>Cloud Name</label><input id="cs-cloud-name" placeholder="e.g. dxyz123abc"/></div>
+          <div class="form-row"><label>Upload Preset (unsigned)</label><input id="cs-cloud-preset" placeholder="e.g. medtracker_preset"/></div>
+          <div id="cloudinary-status" style="font-size:11px;color:var(--tx3);margin-top:6px"></div>
+          <button class="btn btn-primary" style="font-size:11px;margin-top:8px" onclick="saveCloudinaryConfig()"><i class="ti ti-check"></i> Save Image Storage Config</button>
+        </div>
+
+
           <div style="font-size:11px;color:var(--tx2);margin-bottom:10px">Download all data as a file. Use if you need to move data or as an extra safety copy.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn" style="font-size:11px" onclick="downloadLocalBackup()"><i class="ti ti-download"></i> Download Backup</button>
@@ -2251,6 +2244,33 @@ async function checkFirestoreStatus() {
     if(el) { el.textContent = msg; el.style.color = snap.empty ? 'var(--amb)' : 'var(--grn)'; }
   } catch(err) {
     if(el) { el.textContent = 'Error: '+err.message; el.style.color='var(--red)'; }
+  }
+}
+
+async function saveCloudinaryConfig() {
+  const cn = document.getElementById('cs-cloud-name')?.value?.trim();
+  const cp = document.getElementById('cs-cloud-preset')?.value?.trim();
+  if (!cn || !cp) { showToast('Enter both Cloud Name and Upload Preset','error'); return; }
+  // Always save to localStorage first (immediate, works offline)
+  localStorage.setItem('mt_cloudinary_name', cn);
+  localStorage.setItem('mt_cloudinary_preset', cp);
+  const el = document.getElementById('cloudinary-status');
+  // Save to Firestore if available
+  const db = window._fbDb;
+  if (db) {
+    try {
+      await db.collection('config').doc('cloudinary').set({
+        cloudName: cn, uploadPreset: cp, updatedAt: new Date().toISOString()
+      });
+      if (el) { el.textContent = '✅ Saved to cloud — all users can now upload images'; el.style.color='var(--grn)'; }
+      showToast('✅ Image storage configured for all users','success');
+    } catch(err) {
+      if (el) { el.textContent = '⚠️ Saved locally only — '+err.message; el.style.color='var(--amb)'; }
+      showToast('Saved locally — Firestore error: '+err.message,'error');
+    }
+  } else {
+    if (el) { el.textContent = '✅ Saved locally — will sync to cloud on next login'; el.style.color='var(--amb)'; }
+    showToast('Saved locally — Firebase still loading, try again in a moment','success');
   }
 }
 
@@ -2723,21 +2743,42 @@ async function showApp() {
   document.getElementById('mobile-nav').classList.add('logged-in');
   buildThemeGrid();
 
-  // Load shared Gemini API key from Firestore (set once by admin, works for all users)
+  // Load shared configs from Firestore (admin sets once, all users get automatically)
   try {
-    const cfgDoc = await _fbDb.collection('config').doc('gemini').get();
-    if (cfgDoc.exists && cfgDoc.data().apiKey) {
-      localStorage.setItem('mt_apikey', cfgDoc.data().apiKey);
+    const [geminiDoc, cloudinaryDoc] = await Promise.all([
+      _fbDb.collection('config').doc('gemini').get(),
+      _fbDb.collection('config').doc('cloudinary').get()
+    ]);
+    if (geminiDoc.exists && geminiDoc.data().apiKey) {
+      localStorage.setItem('mt_apikey', geminiDoc.data().apiKey);
     }
-  } catch(e) { /* offline or not set yet — use localStorage fallback */ }
+    if (cloudinaryDoc.exists) {
+      const cd = cloudinaryDoc.data();
+      if (cd.cloudName) localStorage.setItem('mt_cloudinary_name', cd.cloudName);
+      if (cd.uploadPreset) localStorage.setItem('mt_cloudinary_preset', cd.uploadPreset);
+    }
+  } catch(e) {}
 
-  // Load patient data from Firestore
+  // Check if cached local data belongs to this user — if not, clear it
+  const storedUid = localStorage.getItem('mt_patients_uid');
+  if (storedUid && storedUid !== S.currentUser.uid) {
+    localStorage.removeItem('mt_patients');
+    S.patients = [];
+  }
+
+  // Load from Firestore (per-user private path)
   const fromCloud = await loadFromFirestore();
   if (!fromCloud) {
     const stored = localStorage.getItem('mt_patients');
-    if (stored) { try { S.patients = JSON.parse(stored); } catch(e) {} }
-    if (!S.patients.length) loadDemoPatients();
+    if (stored && (!storedUid || storedUid === S.currentUser.uid)) {
+      try { S.patients = JSON.parse(stored); } catch(e) {}
+    }
+    // New users start empty — no demo data
+    if (!S.patients.length) S.patients = [];
   }
+
+  // Tag local cache with uid to prevent cross-user leakage
+  localStorage.setItem('mt_patients_uid', S.currentUser.uid);
   renderHome();
   if (fromCloud && S.patients.length > 0) {
     showToast('✅ Loaded '+S.patients.length+' patient(s) from cloud','success');
@@ -3765,11 +3806,17 @@ async function handleQuickRadUpload(e) {
   showAddRad();
   for (const f of files) {
     try {
-      const result = await compressImageFile(f, 1600, 0.75);
-      S.radFiles.push({name:f.name, type:result.type, data:result.data, size:Math.round(result.data.length*0.75)});
+      showToast('Uploading '+f.name+'...','success');
+      const url = await uploadToCloudinary(f, 'radiology');
+      if (url) {
+        S.radFiles.push({name:f.name, type:f.type, url, size:f.size});
+      } else {
+        const result = await compressImageFile(f, 1600, 0.75);
+        S.radFiles.push({name:f.name, type:result.type, data:result.data, size:Math.round(result.data.length*0.75)});
+      }
       updateRadFilesPreview();
     } catch(err) {
-      showToast('Could not process '+f.name,'error');
+      showToast('Could not upload '+f.name,'error');
     }
   }
 }
@@ -4605,15 +4652,66 @@ async function sendAIFull() {
 let _editPatientId = null;
 let _editPatientPhoto = null;
 
+// ============================================================
+// CLOUDINARY IMAGE UPLOAD
+// Admin sets cloud_name + upload_preset once in app config.
+// All images uploaded directly from browser → Cloudinary CDN.
+// URL stored in Firestore — same URL works on every device.
+// ============================================================
+async function getCloudinaryConfig() {
+  // Try Firestore first (admin-set, shared across all users)
+  if (window._fbDb) {
+    try {
+      const doc = await _fbDb.collection('config').doc('cloudinary').get();
+      if (doc.exists) return doc.data();
+    } catch(e) {}
+  }
+  // Fallback to localStorage (in case Firestore is offline)
+  const cn = localStorage.getItem('mt_cloudinary_name');
+  const cp = localStorage.getItem('mt_cloudinary_preset');
+  if (cn && cp) return { cloudName: cn, uploadPreset: cp };
+  return null;
+}
+
+async function uploadToCloudinary(file, folder) {
+  const cfg = await getCloudinaryConfig();
+  if (!cfg || !cfg.cloudName || !cfg.uploadPreset) {
+    // No Cloudinary configured — fall back to compressed base64
+    return null;
+  }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', cfg.uploadPreset);
+  fd.append('folder', 'medtracker/'+(folder||'misc'));
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${cfg.cloudName}/auto/upload`,
+    { method: 'POST', body: fd }
+  );
+  if (!res.ok) throw new Error('Cloudinary upload failed: '+res.statusText);
+  const data = await res.json();
+  return data.secure_url; // permanent HTTPS URL
+}
+
 async function handlePatientPhoto(e) {
   const f = e.target.files[0]; if (!f) return;
+  showToast('Uploading photo...','success');
   try {
-    const result = await compressImageFile(f, 600, 0.8); // smaller max dim for avatar photos
-    _editPatientPhoto = result.data;
-    const prev = document.getElementById('fp-photo-preview');
-    prev.innerHTML = `<img src="${result.data}" style="width:100%;height:100%;object-fit:cover"/>`;
+    // Try Cloudinary first
+    const url = await uploadToCloudinary(f, 'photos');
+    if (url) {
+      _editPatientPhoto = url;
+      document.getElementById('fp-photo-preview').innerHTML =
+        `<img src="${url}" style="width:100%;height:100%;object-fit:cover"/>`;
+      showToast('Photo uploaded to cloud ✅','success');
+    } else {
+      // Fallback: compress to base64
+      const result = await compressImageFile(f, 600, 0.8);
+      _editPatientPhoto = result.data;
+      document.getElementById('fp-photo-preview').innerHTML =
+        `<img src="${result.data}" style="width:100%;height:100%;object-fit:cover"/>`;
+    }
   } catch(err) {
-    showToast('Could not process photo','error');
+    showToast('Photo upload failed: '+err.message,'error');
   }
 }
 
@@ -4758,29 +4856,39 @@ function compressImageFile(file, maxDim, quality) {
 }
 
 async function handleLabFileAttach(e) {
-  const f = e.target.files[0];
-  if (!f) return;
-  const origSizeKB = Math.round(f.size/1024);
-  showToast('Processing file...','success');
+  const f = e.target.files[0]; if (!f) return;
+  showToast('Uploading report...','success');
   try {
-    const result = await compressImageFile(f, 1600, 0.75);
-    _flAttachedFile = {name: f.name, type: result.type, data: result.data};
-    const newSizeKB = Math.round((result.data.length*0.75)/1024); // approx base64->bytes
-    const preview = document.getElementById('fl-file-preview');
-    const isImg = result.type.startsWith('image/');
-    preview.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:6px 10px">
-        ${isImg ? `<img src="${result.data}" style="width:44px;height:44px;object-fit:cover;border-radius:6px"/>` : `<i class="ti ti-file-type-pdf" style="font-size:28px;color:var(--ac2)"></i>`}
-        <div>
-          <div style="font-size:11px;color:var(--tx);font-weight:600">${f.name}</div>
-          <div style="font-size:10px;color:var(--tx3)">${origSizeKB}KB ${result.compressed?'→ '+newSizeKB+'KB (compressed)':''}</div>
-        </div>
-        <button class="btn btn-danger" style="font-size:10px;padding:3px 6px" onclick="clearLabFileAttach()"><i class="ti ti-trash"></i></button>
-      </div>`;
-    showToast(result.compressed ? `Image compressed: ${origSizeKB}KB → ${newSizeKB}KB` : 'File attached','success');
+    // Try Cloudinary first — gives a permanent URL accessible from any device
+    const url = await uploadToCloudinary(f, 'lab-reports');
+    if (url) {
+      _flAttachedFile = {name: f.name, type: f.type, url};
+      document.getElementById('fl-file-preview').innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:6px 10px">
+          <i class="ti ${f.type==='application/pdf'?'ti-file-type-pdf':'ti-photo'}" style="font-size:24px;color:var(--ac2)"></i>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--tx);font-weight:600">${f.name}</div>
+            <div style="font-size:10px;color:var(--grn)">✅ Uploaded to cloud</div>
+          </div>
+          <button class="btn btn-danger" style="font-size:10px;padding:3px 6px" onclick="clearLabFileAttach()"><i class="ti ti-trash"></i></button>
+        </div>`;
+      showToast('Report uploaded to cloud ✅','success');
+    } else {
+      // Cloudinary not configured — compress to base64 fallback
+      const result = await compressImageFile(f, 1600, 0.75);
+      _flAttachedFile = {name: f.name, type: result.type, data: result.data};
+      document.getElementById('fl-file-preview').innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--bd);border-radius:8px;padding:6px 10px">
+          <i class="ti ti-photo" style="font-size:24px;color:var(--ac2)"></i>
+          <div style="flex:1">
+            <div style="font-size:11px;color:var(--tx);font-weight:600">${f.name}</div>
+            <div style="font-size:10px;color:var(--tx3)">Stored locally (set up Cloudinary for cross-device access)</div>
+          </div>
+          <button class="btn btn-danger" style="font-size:10px;padding:3px 6px" onclick="clearLabFileAttach()"><i class="ti ti-trash"></i></button>
+        </div>`;
+    }
   } catch(err) {
-    console.error('File processing error:', err);
-    showToast('Could not process file','error');
+    showToast('Upload failed: '+err.message,'error');
   }
 }
 
@@ -4851,17 +4959,29 @@ async function handleRadFiles(e) {
   const files=[...e.target.files];
   for (const f of files) {
     try {
-      const result = await compressImageFile(f, 1600, 0.75);
-      S.radFiles.push({name:f.name, type:result.type, data:result.data, size:Math.round(result.data.length*0.75)});
+      showToast('Uploading '+f.name+'...','success');
+      const url = await uploadToCloudinary(f, 'radiology');
+      if (url) {
+        S.radFiles.push({name:f.name, type:f.type, url, size:f.size});
+      } else {
+        // Fallback to compressed base64
+        const result = await compressImageFile(f, 1600, 0.75);
+        S.radFiles.push({name:f.name, type:result.type, data:result.data, size:Math.round(result.data.length*0.75)});
+      }
       updateRadFilesPreview();
     } catch(err) {
-      showToast('Could not process '+f.name,'error');
+      showToast('Could not upload '+f.name+': '+err.message,'error');
     }
   }
 }
 
 function updateRadFilesPreview() {
-  document.getElementById('rad-files-preview').innerHTML=S.radFiles.map((f,i)=>`<div class="af-item"><i class="ti ti-file"></i>${f.name||'File '+i} (${f.size?Math.round(f.size/1024)+'KB':''})<button class="af-remove" onclick="S.radFiles.splice(${i},1);updateRadFilesPreview()"><i class="ti ti-x"></i></button></div>`).join('');
+  document.getElementById('rad-files-preview').innerHTML=S.radFiles.map((f,i)=>`
+    <div class="af-item">
+      <i class="ti ti-${f.url?'cloud-check':'file'}"></i>
+      ${f.name||'File '+i} ${f.url?'<span style="color:var(--grn);font-size:10px">✅ cloud</span>':'('+Math.round((f.size||0)/1024)+'KB)'}
+      <button class="af-remove" onclick="S.radFiles.splice(${i},1);updateRadFilesPreview()"><i class="ti ti-x"></i></button>
+    </div>`).join('');
 }
 
 function saveRad() {
